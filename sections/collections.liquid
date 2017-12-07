@@ -1,0 +1,35 @@
+  {% paginate collection.products by 20 %}
+    <!-- the top of your collections.liquid -->
+    
+    <!-- START PRODUCTS -->
+    {% for product in collection.products %}
+    	    <!-- START PRODUCT {{ forloop.index | plus:paginate.current_offset }} -->
+    	    <div class="product" id="product-{{ forloop.index | plus:paginate.current_offset }}">
+                {% include 'product' with product %}
+            </div> 
+    	    <!-- END PRODUCT {{ forloop.index | plus:paginate.current_offset }} -->
+    {% endfor %}
+	
+    {% if paginate.next %}
+        <div id="more"><p>&darr; <a href="{{ paginate.next.url }}">More</a></p></div>        
+    {% endif %}
+
+    <div id="product-list-foot"></div>
+    <!-- END PRODUCTS -->
+    
+    <!-- the bottom of your collections.liquid -->
+    {% endpaginate %}
+
+
+{% schema %}
+  {
+    "name": "Section name",
+    "settings": []
+  }
+{% endschema %}
+
+{% stylesheet %}
+{% endstylesheet %}
+
+{% javascript %}
+{% endjavascript %}

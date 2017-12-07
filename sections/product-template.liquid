@@ -1,0 +1,291 @@
+<div id="ProductSection" data-section-id="{{ section.id }}" data-section-type="product-template" data-zoom-toggle="zoom-in" data-zoom-enabled="{{ section.settings.product_image_zoom_enable }}" data-related-enabled="{{ section.settings.product_related_enable }}" data-social-sharing="{{ section.settings.social_sharing }}" data-show-compare-at-price="{{ section.settings.product_show_compare_at_price }}" data-stock="{{ section.settings.product_quantity_message }}" data-incoming-transfer="{{ section.settings.product_incoming_message }}">
+{% include 'breadcrumb' %}
+
+<div class="grid" itemscope itemtype="http://schema.org/Product">
+  <meta itemprop="url" content="{{ shop.url }}{{ product.url }}">
+  <meta itemprop="image" content="{{ product.featured_image.src | img_url: 'grande' }}">
+
+  <div class="grid-item large--two-fifths">
+    <div class="grid">
+      <div class="grid-item large--eleven-twelfths text-center">
+      <div class="product-photo-container" id="#productPhoto">
+      {% assign featured_image = product.selected_or_first_available_variant.featured_image | default: product.featured_image %}
+      {% for image in product.images %}
+      {% capture img_wrapper_id %}productPhoto-{{ image.id }}{% endcapture %}
+      {% capture img_id %}productPhotoImg-{{ image.id }}{% endcapture %}
+        
+        <div class="lazyload__image-wrapper no-js product__image-wrapper{% unless image == featured_image %} hide{% endunless %}" id="{{ img_wrapper_id }}" style="padding-top:{{ 1 | divided_by: image.aspect_ratio | times: 100}}%;" data-image-id="{{ image.id }}">
+          {%- assign img_url = image | img_url: '1x1' | replace: '_1x1.', '_{width}x.' -%}
+            <img id="{{ img_id }}"
+              {% if forloop.first == true %}
+              src="{{ featured_image | img_url: '300x300' }}"
+              {% endif %}
+              class="lazyload no-js lazypreload"
+              data-src="{{ img_url }}"
+              data-widths="[180, 360, 540, 720, 900, 1080, 1296, 1512, 1728, 2048]"
+              data-aspectratio="{{ image.aspect_ratio }}"
+              data-sizes="auto"
+              alt="{{ image.alt | escape }}"
+              {% if section.settings.product_image_zoom_enable %} data-zoom="{{ image | img_url: '1024x1024', scale: 2 }}"{% endif %}>
+        </div>
+        {% if forloop.first == true %}
+        <noscript>
+           <img src="{{ image | img_url: '580x' }}"
+             srcset="{{ image | img_url: '580x' }} 1x, {{ image | img_url: '580x', scale: 2 }} 2x"
+             alt="{{ image.alt }}" style="opacity:1;">
+         </noscript>
+         {% endif %}
+        {% endfor %}
+        </div>
+        {% if product.images.size > 1 %}
+          <ul class="product-photo-thumbs grid-uniform" id="productThumbs-{{ section.id }}">
+
+            {% for image in product.images %}
+              <li class="grid-item medium-down--one-quarter large--one-quarter">
+                <a href="{{ image.src | img_url: '1024x1024', scale: 2 }}" class="product-photo-thumb product-photo-thumb-{{ section.id }}" data-image-id="{{ image.id }}">
+                  <img src="{{ image.src | img_url: 'compact' }}" alt="{{ image.alt | escape }}">
+                </a>
+              </li>
+            {% endfor %}
+
+          </ul>
+        {% endif %}
+
+      </div>
+    </div>
+
+  </div>
+
+  <div class="grid-item large--three-fifths">
+
+    <h1 class="h2" itemprop="name">{{ product.title }}</h1>
+
+    {% if section.settings.product_vendor_enable %}
+      <p class="product-meta" itemprop="brand">{{ product.vendor }}</p>
+    {% endif %}
+
+    <div itemprop="offers" itemscope itemtype="http://schema.org/Offer">
+
+      {% assign variant = product.selected_or_first_available_variant %}
+
+      <meta itemprop="priceCurrency" content="{{ shop.currency }}">
+      <meta itemprop="price" content="{{ variant.price | divided_by: 100.00 }}">
+
+      <ul class="inline-list product-meta">
+        <li>
+          <span id="productPrice-{{ section.id }}" class="h1">
+            {% include 'price' with variant.price %}
+          </span>
+        </li>
+        {% if product.compare_at_price_max > product.price and section.settings.product_show_saved_amount %}
+        <li>
+          <span id="comparePrice-{{ section.id }}" class="sale-tag large">
+            {% assign compare_price = variant.compare_at_price %}
+            {% assign product_price = variant.price %}
+            {% include 'price-sale' %}
+          </span>
+        </li>
+        {% endif %}
+        {% if section.settings.product_reviews_enable %}
+          <li class="product-meta--review">
+            <span class="shopify-product-reviews-badge" data-id="{{ product.id }}"></span>
+          </li>
+        {% endif %}
+      </ul>
+
+      <hr id="variantBreak" class="hr--clear hr--small">
+
+      <link itemprop="availability" href="http://schema.org/{% if product.available %}InStock{% else %}OutOfStock{% endif %}">
+
+      <form action="/cart/add" method="post" enctype="multipart/form-data" id="addToCartForm">
+        <select name="id" id="productSelect-{{ section.id }}" class="product-variants product-variants-{{ section.id }}">
+          {% for variant in product.variants %}
+            {% if variant.available %}
+
+              <option {% if variant == product.selected_or_first_available_variant %} selected="selected" {% endif %} data-sku="{{ variant.sku }}" value="{{ variant.id }}">{{ variant.title }} - {{ variant.price | money_with_currency }}</option>
+
+            {% else %}
+              <option disabled="disabled">
+                {{ variant.title }} - {{ 'products.product.sold_out' | t }}
+              </option>
+            {% endif %}
+          {% endfor %}
+        </select>
+
+        {% if section.settings.product_quantity_enable %}
+          <label for="quantity" class="quantity-selector quantity-selector-{{ section.id }}">{{ 'products.product.quantity' | t }}</label>
+          <input type="number" id="quantity" name="quantity" value="1" min="1" class="quantity-selector">
+        {% endif %}
+
+        <button type="submit" name="add" id="addToCart" class="btn">
+          <span class="icon icon-cart"></span>
+          <span id="addToCartText-{{ section.id }}">{{ 'products.product.add_to_cart' | t }}</span>
+        </button>
+
+        {% if section.settings.product_quantity_message%}
+          <span id="variantQuantity-{{ section.id }}" class="variant-quantity {% if variant.inventory_management and variant.inventory_quantity < 10 and variant.inventory_quantity > 0 %} is-visible{% endif %}">
+           {% if variant.inventory_management and variant.inventory_quantity < 10 and variant.inventory_quantity > 0 %}
+              {% assign qty = variant.inventory_quantity %}
+              {{ 'products.product.only_left' | t: count: qty }}
+            {% endif %}
+          </span>
+        {% endif %}
+
+        {% if section.settings.product_incoming_message %}
+          <span id="variantIncoming-{{ section.id }}" class="variant-quantity {% if variant.inventory_management and variant.inventory_quantity <= 0 and variant.incoming %} is-visible{% endif %}">
+            {% if variant.inventory_management and variant.inventory_quantity == 0 or variant.inventory_quantity < 0 and current_variant.incoming %}
+              {% if variant.available %}
+                {% assign date = variant.next_incoming_date | date: "month_day_year" %}
+                {{ 'products.product.will_not_ship_until' | t: date: date  }}
+              {% else %}
+                {% assign date = variant.next_incoming_date | date: "month_day_year" %}
+                {{ 'products.product.will_be_in_stock_after' | t: date: date }}
+              {% endif %}
+            {% endif %}
+          </span>
+        {% endif %}
+
+      </form>
+
+      <hr>
+
+<style>#progress_bar{margin-top:15px}.progressbar.progressbar{background:#ffe8e8;border:0px solid whitesmoke;height:11px}.progressbar.progressbar div{background:#d95350;height:11px}.progressbar.progressbar.active div{-webkit-animation:2s linear 0s normal none infinite running progress-bar-stripes;animation:2s linear 0s normal none infinite running progress-bar-stripes}.progress-striped.progressbar.progressbar div{background-image:-webkit-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);background-image:linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, rgba(0, 0, 0, 0) 25%, rgba(0, 0, 0, 0) 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, rgba(0, 0, 0, 0) 75%, rgba(0, 0, 0, 0));background-size:40px 40px}.items-count{margin-top:0px;margin-bottom:0px}.count{color:#a94442;padding:1px}.items-count p{padding-bottom:5px;margin:0;text-transform:uppercase;font-weight:700;text-align:center;font-family:"Open Sans",Arial,sans-serif}.progressbar{position:relative;display:block;background-color:#ca0000;border:1px solid #ddd;margin-bottom:15px;-webkit-box-shadow:inset 0 1px 2px rgba(0, 0, 0, .1);box-shadow:inset 0 1px 2px rgba(0, 0, 0, .1)}.progressbar > div{background-color:#ca0000;width:0;margin-bottom:0;height:15px}.progressbar > div.less-than-ten{background-color:#ca0000 !important}#clock-ticker {
+    display: block;
+    margin-bottom: 15px;
+    text-align: center;
+}#clock-ticker .block{position:relative;color:#000;font-weight:bold;text-align:center;width:12%;text-align: center;    display: inline-block;}#clock-ticker .block .flip-top {
+    width: 42px;
+    height: 36px;
+    line-height: 36px;
+    font-size: 22px;
+    text-align: center;
+    background: #000;
+    color: #fff;
+    border-radius: 6px;
+    display: inline-block;
+}#clock-ticker .block .label,span.flip-top{color:#000;font-weight:bold;text-align:center;font-size:12px;text-transform:uppercase;width:88px;margin-top:5pxline-height:25px;font-family:"Open Sans",Arial,sans-serif}</style>
+      
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
+<script type="text/javascript">
+function randomIntFromInterval(min, max) {return Math.floor(Math.random() * (max - min + 1) + min);}
+
+// Settings are here
+var total_items = 50;
+var d = new Date();
+var min_items_left = 12;
+var max_items_left = 20;
+var remaining_items = randomIntFromInterval(min_items_left, max_items_left);
+var min_of_remaining_items = 1;
+var decrease_after = 1.7; 
+var decrease_after_first_item = 0.17; 
+
+// Davy Jones' Locker
+(function($){$.fn.progressbar=function(){var a="<p>Hurry! Only <span class='count'>"+remaining_items+"</span> left in stock.</p>";this.addClass('items-count');this.html(a+this.html());updateMeter(this);var b=this;setTimeout(function(){remaining_items--;if(remaining_items<min_of_remaining_items){remaining_items=randomIntFromInterval(min_items_left,max_items_left)}$('.count').css('background-color','#CE0201');$('.count').css('color','#fff');setTimeout(function(){$('.count').css('background-color','#fff');$('.count').css('color','#CE0201')},1000*60*0.03);b.find(".count").text(remaining_items);updateMeter(b)},1000*60*decrease_after_first_item);setInterval(function(){remaining_items--;if(remaining_items<min_of_remaining_items){remaining_items=randomIntFromInterval(min_items_left,max_items_left)}$('.count').css('background-color','#CE0201');$('.count').css('color','#fff');setTimeout(function(){$('.count').css('background-color','#fff');$('.count').css('color','#CE0201')},1000*60*0.03);b.find(".count").text(remaining_items);updateMeter(b)},1000*60*decrease_after)};function updateMeter(a){var b=100*remaining_items/total_items;if(remaining_items<10){a.find('.progressbar div:first').addClass('less-than-ten')}a.find('.progressbar').addClass('active progress-striped');setTimeout(function(){myanimate(a.find('.progressbar div:first'),b);a.find('.progressbar').removeClass('active progress-striped')},1000)}}(jQuery));function myanimate(a,b){var c=0;var d=parseInt(a.closest('.progressbar').css('width'));var e=Math.floor(100*parseInt(a.css('width'))/d);if(e>b){c=e}function frame(){if(e>b){c--}else{c++}a.css('width',c+'%');if(c==b||c<=0||c>=100)clearInterval(f)}var f=setInterval(frame,40)} jQuery.noConflict()(function($){$(document).ready(function(){$("#progress_bar").progressbar();var tag="ctdn-12-12".match(/\d+/g);var hour=14;var theDaysBox=$("#numdays");var theHoursBox=$("#numhours");var theMinsBox=$("#nummins");var theSecsBox=$("#numsecs");var d=new Date();var n=d.getDay();var date=1;var gg=0;var hh=0;var ii=0;var nsec=0-d.getSeconds();if(nsec<0){nsec=60-d.getSeconds();gg=1}var nmin=0-d.getMinutes()-gg;if(nmin<0){nmin=60-d.getMinutes()-gg;hh=1}var nhrs=14-d.getHours()-hh;if(nhrs<0){nhrs=38-d.getHours()-hh;ii=1}var ndat=date-1;if(ndat<0){var mmon=d.getMonth();ndat=30+date-d.getDate()-ii}theSecsBox.html(nsec);theMinsBox.html(nmin);theHoursBox.html(nhrs);theDaysBox.html(ndat);var refreshId=setInterval(function(){var e=theSecsBox.text();var a=theMinsBox.text();var c=theHoursBox.text();var b=theDaysBox.text();if(e==0&&a==0&&c==0&&b==0){}else{if(e==0&&a==0&&c==0){theDaysBox.html(b-1);theHoursBox.html("23");theMinsBox.html("59");theSecsBox.html("59")}else{if(e==0&&a==0){theHoursBox.html(c-1);theMinsBox.html("59");theSecsBox.html("59")}else{if(e==0){theMinsBox.html(a-1);theSecsBox.html("59")}else{theSecsBox.html(e-1)}}}}},1000);});});</script>
+<div class="items-count" id="progress_bar"></div><div id="clock-ticker" class="clearfix"><div class="block"><span class="flip-top" id="numdays">0</span><br><span class="label">Days</span></div><div class="block"><span class="flip-top" id="numhours">1</span><br><span class="label">Hours</span></div><div class="block"><span class="flip-top" id="nummins">23</span><br><span class="label">Minutes</span></div><div class="block"><span class="flip-top" id="numsecs">36</span><br><span class="label">Seconds</span></div>
+</div>
+
+    </div>
+
+    <div class="product-description rte" itemprop="description">
+      {{ product.description }}
+    </div>
+
+    {% if section.settings.social_sharing_products %}
+      {% include 'social-sharing' %}
+    {% endif %}
+
+  </div>
+</div>
+
+{% if section.settings.related_products_enable %}
+  {% assign grid_item_width = 'large--one-fifth medium--one-third small--one-half' %}
+  {% include 'related-products' %}
+{% endif %}
+
+{% if section.settings.product_reviews_enable %}
+  <hr>
+  <div id="shopify-product-reviews" data-id="{{ product.id }}">{{ product.metafields.spr.reviews }}</div>
+{% endif %}
+
+{% unless product == empty %}
+  <script type="application/json" id="ProductJson-{{ section.id }}">
+    {{ product | json }}
+  </script>
+  {% if section.settings.product_quantity_message or section.settings.product_incoming_message %}
+    <script type="application/json" id="VariantJson-{{ section.id }}">
+      [
+        {% for variant in product.variants %}
+          {
+             "incoming": {% if variant.incoming == 'null' or variant.next_incoming_date == null %}false{% else %}{{ variant.incoming | default: false | json }}{% endif %},
+             "next_incoming_date": {{ variant.next_incoming_date | date: format: 'month_day_year' | json }}
+          }{% unless forloop.last %},{% endunless %}
+        {% endfor %}
+      ]
+    </script>
+  {% endif %}
+{% endunless %}
+</div>
+
+{% schema %}
+  {
+    "name": "Product",
+    "class": "product-template-section",
+    "settings": [
+      {
+        "type": "checkbox",
+        "id": "product_image_zoom_enable",
+        "label": "Enable image zoom"
+      },
+      {
+        "type": "checkbox",
+        "id": "product_quantity_enable",
+        "label": "Show quantity selector"
+      },
+      {
+        "type": "checkbox",
+        "id": "product_quantity_message",
+        "label": "Show remaining quantity message"
+      },
+      {
+        "type": "checkbox",
+        "id": "product_incoming_message",
+        "label": "Show incoming stock transfer message when sold out"
+      },
+      {
+        "type": "checkbox",
+        "id": "product_vendor_enable",
+        "label": "Show product vendor"
+      },
+      {
+        "type": "checkbox",
+        "id": "product_show_saved_amount",
+        "label": "Show saved amount",
+        "default": true
+      },
+      {
+        "type": "checkbox",
+        "id": "product_show_compare_at_price",
+        "label": "Show compare at price",
+        "default": false
+      },
+      {
+        "type": "checkbox",
+        "id": "related_products_enable",
+        "label": "Show related products"
+      },
+      {
+        "type": "checkbox",
+        "id": "social_sharing_products",
+        "label": "Enable product sharing",
+        "default": true
+      },
+      {
+        "type": "checkbox",
+        "id": "product_reviews_enable",
+        "label": "Enable product reviews",
+        "info": "Install the free Shopify [Product Reviews](https:\/\/apps.shopify.com\/product-reviews) app to add product reviews."
+      }
+    ]
+  }
+{% endschema %}
